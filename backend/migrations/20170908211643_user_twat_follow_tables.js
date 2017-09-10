@@ -5,7 +5,8 @@ exports.up = function(knex, Promise) {
     .createTable('users', (table) => {
       table.increments();
       table.timestamps(false, true);
-      table.string('name');
+      table.string('name').unique();
+      table.string('hash');
       table.string('profileUrl').defaultTo('/assets/images/default-profile.png');
       table.string('description').defaultTo('Recently joined twatter!');
       table.integer('follower_count').defaultTo(0);
@@ -31,7 +32,7 @@ exports.up = function(knex, Promise) {
 exports.down = function(knex, Promise) {
   
   return knex.schema
-    .dropTable('users')
-    .dropTable('follow_relationships')
     .dropTable('twats')
+    .dropTable('follow_relationships')
+    .dropTable('users')
 };

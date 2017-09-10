@@ -1,30 +1,48 @@
 const path = require('path');
 const express = require('express');
-const api = express.Router();
-const app = express();
+const expressSession = require('express-session');
+const expressBodyParser = require('body-parser')
+const expressApi = express.Router();
+const expressApp = express();
 
 const env = require('./../.env');
-const db = require('./db');
-const log = (message, type) => console.log(new Date, message);
 
+const handlers = require('./handlers'); 
 
-api.get('/', (req, res) => {
+const log = require('./log');
+
+expressApp.use(expressSession({
+  secret: env.session.cookieSecret,
+  cookie: { secure: env.session.cookieSecure }
+}));
+expressApp.use(expressBodyParser.json());
+
+expressApi.get('/', (req, res) => {
   res.send(Math.random() + ' hello')
-})
+});
 
-app.use('/api', api);
+const apiPaths = {
+  'post /user': handlers.userCreate,
+  'post /user/login': handlers.userLogin,
+  'post /user/modify': handlers.userModify
+}
+for(let key in apiPaths) {
+  const [method, path] = key.split(' ');
+  expressApi[method](path, apiPaths[key]);
+}
+
+expressApp.use('/api', expressApi);
 
 const vuePaths = [
   '/',
   '/login',
   '/@:user'
 ];
-
-app.get(vuePaths, (req, res) => {
+expressApp.get(vuePaths, (req, res) => {
   res.sendFile(path.join(__dirname, 'assets/index.html'));
 });
-app.use(express.static(path.join(__dirname, 'assets')));
+expressApp.use(express.static(path.join(__dirname, 'assets')));
 
-app.listen(env.port, () => {
+expressApp.listen(env.port, () => {
   log(`App listening on ${env.port}`);
 })
