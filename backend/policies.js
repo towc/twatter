@@ -17,5 +17,10 @@ module.exports = {
   description: {
     maxLength: 240,
     charset: ['base alphabet', 'extended special']
+  },
+
+  twatContent: {
+    maxLength: 160,
+	  curses: [ 'bitch', 'cock', 'cunt', 'dick', 'douchebag', 'fuck', 'jackass', 'shit', 'twat' ]	
   }
 }

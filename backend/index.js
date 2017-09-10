@@ -13,7 +13,9 @@ const log = require('./log');
 
 expressApp.use(expressSession({
   secret: env.session.cookieSecret,
-  cookie: { secure: env.session.cookieSecure }
+  cookie: { secure: env.session.cookieSecure },
+  resave: false,
+  saveUninitialized: false
 }));
 expressApp.use(expressBodyParser.json());
 
@@ -22,9 +24,10 @@ expressApi.get('/', (req, res) => {
 });
 
 const apiPaths = {
-  'post /user': handlers.userCreate,
-  'post /user/login': handlers.userLogin,
-  'post /user/modify': handlers.userModify
+  'post /user': handlers.user.create,
+  'post /user/login': handlers.user.login,
+  'post /user/modify': handlers.user.modify,
+  'post /twat': handlers.twat.create
 }
 for(let key in apiPaths) {
   const [method, path] = key.split(' ');
