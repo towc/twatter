@@ -16,7 +16,7 @@ module.exports = {
   },
   description: {
     maxLength: 240,
-    charset: ['base alphabet', 'extended special']
+    charset: ['base alphabet', 'extended special', 'numeric decimal']
   },
 
   twatContent: {

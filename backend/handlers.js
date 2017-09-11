@@ -17,15 +17,15 @@ const validateAll = (...promiseCreators) => {
 
   return promise;
 };
-const handleError = (error, res) => {
+const handleError = (res, error) => {
   res.json({ error });
 }
-const handleInternal = (error, res) => {
+const handleInternal = (res, error) => {
   res.json({ error: 'internal error' });
   console.error(new Date, '\n', error);
 }
-const handleSuccess = (res) => {
-  res.json({ success: true });
+const handleSuccess = (res, data) => {
+  res.json({ success: true, data });
 }
 
 module.exports = {
@@ -42,9 +42,9 @@ module.exports = {
         .then(() => {
           actions.user.create({ name, password })
             .then(() => { handleSuccess(res) })
-            .catch((error) => { handleInternal(error, res) });
+            .catch((error) => { handleInternal(res, error) });
         })
-        .catch((error) => { handleError(error, res) });
+        .catch((error) => { handleError(res, error) });
     },
 
     login(req, res) {
@@ -62,13 +62,12 @@ module.exports = {
               req.session.authenticated = true;
               handleSuccess(res);
             })
-            .catch((error) => { handleInternal(error, res) });
+            .catch((error) => { handleInternal(res, error) });
         })
-        .catch((error) => { handleError(error, res) });
+        .catch((error) => { handleError(res, error) });
     },
 
-    modify(req, res) {
-
+    edit(req, res) {
       const { name, password, profileUrl, description } = req.body;
       const { userId, authenticated } = req.session;
 
@@ -102,12 +101,58 @@ module.exports = {
         return promises
       })
         .then(() => {
-          actions.modifyUser({ id: userId, name, password, profileUrl, description})
+          console.log('reached then')
+          actions.user.edit({ id: userId, name, password, profileUrl, description})
             .then(() => { handleSuccess(res) })
-            .catch((error) => { handleInternal(error, res) });
+            .catch((error) => { handleInternal(res, error) });
         })
-        .catch((error) => { handleError(error, res) })
+        .catch((error) => { handleError(res, error) });
     },
+
+    changeRelationship(req, res) {
+      const { name } = req.params;
+      const { following, blocking, muting } = req.body;
+      const { userId, authenticated } = req.session;
+
+      const relationships = { following, blocking, muting };
+
+      validateAll([
+        validations.session.isAuthenticated(authenticated)
+      ], () => [
+        validation.user.idRelationshipsNameNotSame(userId, relationships, name )
+      ], () => {
+        const promises = [];
+
+        if(following) {
+          promises.push(
+            validations.user.nameNotBlockingId(name, userId)
+          );
+        }
+
+        return promises;
+      })
+        .then(() => {
+          actions.user.changeIdRelationshipsName({ relationships, originId, targetName })
+            .then(() => { handleSuccess(res) })
+            .catch((error) => { handleInternal(res, error) });
+        })
+        .catch((error) => { handleError(res, error) });
+    },
+
+    getByNameBase(req, res) {
+      const { name } = req.params;
+
+      validateAll([
+        validations.user.nameExists(name)
+      ])
+        .then(() => {
+          fetchers.user.getPublicByName({ name })
+            .then((data) => { handleSuccess(res, data) })
+            .catch((error) => { handleInternal(res, error) });
+        })
+        .catch((error) => { handleError(res, error) });
+      
+    }
   },
 
   twat: {
@@ -122,11 +167,39 @@ module.exports = {
         validations.twat.parentIdExistsOrUndefined(parentId)
       ])
         .then(() => {
-          actions.createTwat({ content, parentId, authorId: userId })
+          actions.twat.create({ content, parentId, authorId: userId })
             .then(() => { handleSuccess(res) })
-            .catch((error) => { handleInternal(error, res) });
+            .catch((error) => { handleInternal(res, error) });
         })
-        .catch((error) => { handleError(error, res) });
+        .catch((error) => { handleError(res, error) });
+    },
+
+    getById(req, res) {
+      const { id } = req.params;
+
+      validateAll([
+        validations.twat.idExists(id)
+      ])
+        .then(() => {
+          fetchers.twat.getPublicById({ id })
+            .then((data) => { handleSuccess(res, data) })
+            .catch((error) => { handleInternal(res, error) });
+        })
+        .catch((error) => { handleError(res, error) });
+    },
+
+    getByAuthorName(req, res) {
+      const { name } = req.params;
+
+      validateAll([
+        validations.user.nameExists(name)
+      ])
+        .then(() => {
+          fetchers.twat.getPublicByAuthorName({ name })
+            .then((data) => { handleSuccess(res, data) })
+            .catch((error) => { handleInternal(res, error) });
+        })
+        .catch((error) => { handleError(res, error) });
     }
   }
 

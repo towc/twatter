@@ -26,8 +26,12 @@ expressApi.get('/', (req, res) => {
 const apiPaths = {
   'post /user': handlers.user.create,
   'post /user/login': handlers.user.login,
-  'post /user/modify': handlers.user.modify,
-  'post /twat': handlers.twat.create
+  'post /user/edit': handlers.user.edit,
+  'post /user/relationship/:name': handlers.user.changeRelationship,
+  'get /user/by-name/base/:name': handlers.user.getByNameBase,
+
+  'post /twat': handlers.twat.create,
+  'get /twat/by-id/:id': handlers.twat.getById,
 }
 for(let key in apiPaths) {
   const [method, path] = key.split(' ');

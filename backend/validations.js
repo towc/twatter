@@ -67,13 +67,13 @@ module.exports = {
       return promiseFromValidations([
         {
           test: name.length >= policy.minLength,
-          error: 'name length short'
+          error: 'user name length short'
         }, {
           test: name.length <= policy.maxLength,
-          error: 'name length long'
+          error: 'user name length long'
         }, {
           test: stringWithinCharsets(name, policy.charset),
-          error: 'name charset not matching'
+          error: 'user name charset not matching'
         }
       ]);
     },
@@ -82,13 +82,13 @@ module.exports = {
       return fetchers.user.nameExists({ name })
         .then((result) => promiseFromValidation({
           test: result,
-          error: 'name not exists'
+          error: 'user name not exists'
         }));
     },
     nameNotExists(name) {
       return new Promise((resolve, reject) => {
         this.nameExists(name)
-          .then(() => { reject('name exists') })
+          .then(() => { reject('user name exists') })
           .catch(resolve);
       })
     },
@@ -98,13 +98,14 @@ module.exports = {
 
       return promiseFromValidations([
         {
-          test: password.length >= policy.minLength, error: 'password length short'
+          test: password.length >= policy.minLength,
+          error: 'user password length short'
         }, {
           test: password.length <= policy.maxLength,
-          error: 'password length long'
+          error: 'user password length long'
         }, {
           test: stringInAllCharsets(password, policy.mustCharset),
-          error: 'password charset not matching'
+          error: 'user password charset not matching'
         }
       ]);
     },
@@ -115,7 +116,7 @@ module.exports = {
           bcrypt.compare(password, hash)
             .then((result) => promiseFromValidation({
               test: result,
-              error: 'password not matching'
+              error: 'user password not matching'
             }))  
         )
     },
@@ -126,13 +127,13 @@ module.exports = {
       return promiseFromValidations([
         {
           test: policy.protocols.includes(profileUrl.split(':')[0]),
-          error: 'profile url invalid protocol'
+          error: 'user profile url invalid protocol'
         }, {
           test: policy.extensions.includes(profileUrl.split('.').pop()),
-          error: 'profile url invalid extension'
+          error: 'user profile url invalid extension'
         }, {
           test: profileUrl.length <= policy.maxLength,
-          error: 'profile url length long'
+          error: 'user profile url length long'
         }
       ])
     },
@@ -143,13 +144,38 @@ module.exports = {
       return promiseFromValidations([
         {
           test: description.length <= policy.maxLength,
-          error: 'description length long'
+          error: 'user description length long'
         }, {
-          test: stringWithinCharset(description, policy.charset),
-          error: 'description charset not matching'
+          test: stringWithinCharsets(description, policy.charset),
+          error: 'user description charset not matching'
         }
       ])
     },
+
+    idRelationshipsNameNotSame(originId, realtionships, targetName) {
+      return fetchers.user.getRelationshipsFromIdToName({ originId, targetName })
+        .then((types) => {
+          for(let relationship in relationships) {
+            const value = relationships[relationship];
+            if(value === types.includes(relationship)) {
+              return promiseFromValidation({
+                test: false,
+                error: `user relationship not changed -- ${relationship}`
+              })
+            }
+            return promiseFromValidation({ test: true });
+          }
+        })
+    },
+
+    nameNotBlockingId(originName, targetId) {
+      return fetchers.user
+        .getRelationshipFromNameToId({ originName, targetId, relationship: 'blocking' })
+        .then((result) => promiseFromValidation({
+          test: result,
+          error: 'user target blocking origin'
+        }))
+    }
   },
 
 
@@ -160,12 +186,20 @@ module.exports = {
       return promiseFromValidations([
         {
           test: content.length <= policy.maxLength,
-          error: 'content length long'
+          error: 'twat content length long'
         }, {
           test: stringContainsWord(content, policy.curses),
-          error: 'content not contains whitelist'
+          error: 'twat content not contains whitelist'
         }
       ])
+    },
+
+    idExists(id) {
+      return fetchers.twat.idExists({ id })
+        .then((result) => promiseFromValidation({
+          test: result,
+          error: 'twat id not exists'
+        }));
     },
 
     parentIdExistsOrUndefined(parentId) {
@@ -176,7 +210,7 @@ module.exports = {
       return fetchers.twat.idExists({ id: parentId })
         .then((result) => promiseFromValidation({
           test: result,
-          error: 'parent not exists'
+          error: 'twat parent not exists'
         }))
     },
   },
@@ -185,7 +219,7 @@ module.exports = {
     isAuthenticated(authenticated) {
       return promiseFromValidation({
         test: authenticated,
-        error: 'user not authenticated'
+        error: 'session user not authenticated'
       })
     }
   },

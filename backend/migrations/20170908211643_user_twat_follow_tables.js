@@ -7,16 +7,17 @@ exports.up = function(knex, Promise) {
       table.timestamps(false, true);
       table.string('name').unique();
       table.string('hash');
-      table.string('profileUrl').defaultTo('/assets/images/default-profile.png');
+      table.string('profile_url').defaultTo('/assets/images/default-profile.png');
       table.string('description').defaultTo('Recently joined twatter!');
       table.integer('follower_count').defaultTo(0);
       table.integer('following_count').defaultTo(0);
     })
-    .createTable('follow_relationships', (table) => {
+    .createTable('user_relationships', (table) => {
       table.increments();
       table.timestamps(false, true);
-      table.integer('follower_id').references('users.id');
-      table.integer('followed_id').references('users.id');
+      table.enu('type', ['follow', 'block', 'mute']);
+      table.integer('origin_id').references('users.id');
+      table.integer('target_id').references('users.id');
     })
     .createTable('twats', (table) => {
       table.increments();
