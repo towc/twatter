@@ -101,7 +101,6 @@ module.exports = {
         return promises
       })
         .then(() => {
-          console.log('reached then')
           actions.user.edit({ id: userId, name, password, profileUrl, description})
             .then(() => { handleSuccess(res) })
             .catch((error) => { handleInternal(res, error) });
