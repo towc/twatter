@@ -23,7 +23,7 @@ const handleError = (res, error) => {
 }
 const handleInternal = (res, error) => {
   res.json({ error: 'internal error' });
-  log(error, { type: 'error' })
+  log(error, { type: 'error' });
 }
 const handleSuccess = (res, data) => {
   res.json({ success: true, data });
