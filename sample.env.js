@@ -1,7 +1,13 @@
 // this file mirrors the contents of .env.js
 
 module.exports = {
-  verbosity: Number, // the lower, the more verbose. Min is 0
+  verbosity: Number,
+    // 0: anything
+    // 1: - minor function calling
+    // 2: - major function calling
+    // 3: - connection
+    // 4: - hooks
+    // 5: only fatal
   port: Number,
   db: {
     type: String,
