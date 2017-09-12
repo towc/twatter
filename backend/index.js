@@ -51,5 +51,5 @@ expressApp.get(vuePaths, (req, res) => {
 expressApp.use(express.static(path.join(__dirname, 'assets')));
 
 expressApp.listen(env.port, () => {
-  log(`App listening on ${env.port}`);
+  log(`App listening on ${env.port}`, { verbosity: 3 });
 })

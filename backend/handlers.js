@@ -1,6 +1,7 @@
 const validations = require('./validations');
 const actions = require('./actions');
 const fetchers = require('./fetchers');
+const log = require('./log');
 
 // each promiseCreator is either an array or a function returning an array.
 // the next argument will not be evaluated unless all previous arguments have resolved
@@ -22,7 +23,7 @@ const handleError = (res, error) => {
 }
 const handleInternal = (res, error) => {
   res.json({ error: 'internal error' });
-  console.error(new Date, '\n', error);
+  log(error, { type: 'error' })
 }
 const handleSuccess = (res, data) => {
   res.json({ success: true, data });
