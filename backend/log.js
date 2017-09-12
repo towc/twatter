@@ -1,16 +1,22 @@
+const env = require('../.env');
 const [ DATE, TYPE, MESSAGE ] = [ 0, 1, 2 ];
 
 module.exports = (message, opts) => {
-  const { type } = opts || { type: 'log' };
+  const { type, verbosity } = opts || { type: 'log', verbosity: 4 };
 
+  if( verbosity < env.verbosity ) {
+    return
+  }
   const args = [new Date, 'LOG', message];
 
   switch(type) {
     case 'log':
-      return console.log.apply(null, args);
+      console.log.apply(null, args);
+      return;
     case 'error':
       args[TYPE] = 'ERROR\n';
-      return console.error.apply(null, args);
+      console.error.apply(null, args);
+      return;
   }
  
 }
