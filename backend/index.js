@@ -32,6 +32,8 @@ const apiPaths = {
 
   'post /twat': handlers.twat.create,
   'get /twat/by-id/:id': handlers.twat.getById,
+  'get /twat/timeline/:offset\\+:count': handlers.twat.getTimeline,
+  'get /twat/timeline/by-name/:name/:offset\\+:count': handlers.twat.getTimelineByName
 }
 for(let key in apiPaths) {
   const [method, path] = key.split(' ');

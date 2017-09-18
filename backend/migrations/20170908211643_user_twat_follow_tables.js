@@ -11,6 +11,8 @@ exports.up = function(knex, Promise) {
       table.string('description').defaultTo('Recently joined twatter!');
       table.integer('follower_count').defaultTo(0);
       table.integer('following_count').defaultTo(0);
+      table.integer('twat_count').defaultTo(0);
+      table.integer('shout_count').defaultTo(0);
     })
     .createTable('user_relationships', (table) => {
       table.increments();

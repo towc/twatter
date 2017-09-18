@@ -75,7 +75,7 @@ module.exports = {
           author_id: authorId, 
           parent_id: parentId === undefined ? null : parentId
         })
-    }
+    },
   },
 
 }

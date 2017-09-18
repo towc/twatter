@@ -188,14 +188,33 @@ module.exports = {
         .catch((error) => { handleError(res, error) });
     },
 
-    getByAuthorName(req, res) {
-      const { name } = req.params;
+    getTimeline(req, res) {
+      const { offset, count } = req.params;
+      const { authenticated, userId } = req.session;
 
       validateAll([
-        validations.user.nameExists(name)
+        validations.session.isAuthenticated(authenticated),
+        validations.twat.offsetMeetsPolicy(offset),
+        validations.twat.countMeetsPolicy(count)
       ])
         .then(() => {
-          fetchers.twat.getPublicByAuthorName({ name })
+          fetchers.twat.getTimelineById({ id: userId, offset, count }) 
+            .then((data) => { handleSuccess(res, data) })
+            .catch((error) => { handleInternal(res, error) });
+        })
+        .catch((error) => { handleError(res, error) });
+    },
+
+    getTimelineByName(req, res) {
+      const { name, offset, count  } = req.params;
+
+      validateAll([
+        validations.user.nameExists(name),
+        validations.twat.offsetMeetsPolicy(offset),
+        validations.twat.countMeetsPolicy(count)
+      ])
+        .then(() => {
+          fetchers.twat.getPublicByAuthorName({ name, offset, count })
             .then((data) => { handleSuccess(res, data) })
             .catch((error) => { handleInternal(res, error) });
         })

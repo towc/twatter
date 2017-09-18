@@ -22,5 +22,12 @@ module.exports = {
   twatContent: {
     maxLength: 160,
 	  curses: [ 'bitch', 'cock', 'cunt', 'dick', 'douchebag', 'fuck', 'jackass', 'shit', 'twat' ]	
+  },
+  twatOffset: {
+    charset: ['numeric decimal']
+  },
+  twatCount: {
+    max: 30,
+    charset: ['numeric decimal']
   }
 }

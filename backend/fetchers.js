@@ -1,4 +1,5 @@
 const knex = require('./db');
+const log = require('./log');
 
 const exists = (table, where) => {
   return knex(table)
@@ -70,6 +71,7 @@ const fetchers = {
         .select([
           'content',
           'twatback_count',
+          'shout_count',
           'response_count',
           'parent_id',
           'author_id'
@@ -83,20 +85,37 @@ const fetchers = {
             })
         }))
     },
-    getPublicByAuthorName({ name }) {
-      return knex('users')
-        .select('id')
-        .where({ name })
-        .then((id) => knex('twats')
-          .select([
-            'id',
-            'content',
-            'twatback_count',
-            'response_count',
-            'parent_id'
-          ])
-          .where({ author_id: id })
-        )
+    getTimelineById({ id, offset, count }) {
+      return knex('twats')
+        .join('user_relationships', {
+          'target_id': 'twats.author_id',
+          'type': knex.raw("'following'")
+        })
+        .select([
+          'content',
+          'twatback_count',
+          'shout_count',
+          'response_count',
+          'parent_id'
+        ])
+    },
+    getPublicByAuthorName({ name, offset, count }) {
+      return knex('twats')
+        .join('users', {
+          'twats.author_id': 'users.id',
+        })
+        .select([
+          'twats.id',
+          'content',
+          'twatback_count',
+          'twats.shout_count',
+          'response_count',
+          'parent_id'
+        ])
+        .where({ 'users.name': name })
+        .orderBy('twats.created_at')
+        .limit(count)
+        .offset(offset);
     }
   }
 }

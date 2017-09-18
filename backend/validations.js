@@ -93,8 +93,7 @@ module.exports = {
       })
     },
 
-    passwordMeetsPolicy(password) {
-      const policy = policies.password;
+    passwordMeetsPolicy(password) { const policy = policies.password;
 
       return promiseFromValidations([
         {
@@ -213,6 +212,27 @@ module.exports = {
           error: 'twat parent not exists'
         }))
     },
+    offsetMeetsPolicy(offset) {
+      const policy = policies.twatOffset;
+
+      return promiseFromValidation({
+          test: stringWithinCharsets(offset, policy.charset),
+          error: 'twat offset not number'
+      })
+    },
+    countMeetsPolicy(count) {
+      const policy = policies.twatCount;
+
+      return promiseFromValidations([
+        {
+          test: stringWithinCharsets(count, policy.charset),
+          error: 'twat count not number'
+        }, {
+          test: +count <= policy.max,
+          error: 'twat count above max'
+        }
+      ])
+    }
   },
 
   session: {
