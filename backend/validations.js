@@ -61,7 +61,7 @@ const stringContainsWord = (string, words) => {
 module.exports = {
 
   user: {
-    nameMeetsPolicy(name) {
+    nameMeetsPolicy({ name }) {
       const policy = policies.name;
 
       return promiseFromValidations([
@@ -78,7 +78,7 @@ module.exports = {
       ]);
     },
 
-    nameExists(name) {
+    nameExists({ name }) {
       return fetchers.user.nameExists({ name })
         .then((result) => promiseFromValidation({
           test: result,
@@ -87,13 +87,22 @@ module.exports = {
     },
     nameNotExists(name) {
       return new Promise((resolve, reject) => {
-        this.nameExists(name)
+        this.nameExists({ name })
           .then(() => { reject('user name exists') })
           .catch(resolve);
       })
     },
 
-    passwordMeetsPolicy(password) { const policy = policies.password;
+    idExists({ id }) {
+      return fetchers.user.idExists({ id })
+        .then((result) => promiseFromValidation({
+          test: result,
+          error: 'user id not exists'
+        }));
+    },
+
+    passwordMeetsPolicy({ password }) {
+      const policy = policies.password;
 
       return promiseFromValidations([
         {
@@ -109,7 +118,7 @@ module.exports = {
       ]);
     },
 
-    passwordMatchesName(password, name) {
+    passwordMatchesName({ password, name }) {
       return fetchers.user.hashFromName({ name })
         .then((hash) =>
           bcrypt.compare(password, hash)
@@ -120,7 +129,7 @@ module.exports = {
         )
     },
 
-    profileUrlMeetsPolicy(profileUrl) {
+    profileUrlMeetsPolicy({ profileUrl }) {
       const policy = policies.profileUrl;
 
       return promiseFromValidations([
@@ -137,7 +146,7 @@ module.exports = {
       ])
     },
 
-    descriptionMeetsPolicy(description) {
+    descriptionMeetsPolicy({ description }) {
       const policy = policies.description;
 
       return promiseFromValidations([
@@ -151,8 +160,8 @@ module.exports = {
       ])
     },
 
-    idRelationshipsNameNotSame(originId, realtionships, targetName) {
-      return fetchers.user.getRelationshipsFromIdToName({ originId, targetName })
+    relationshipsNotSame({ originId, realtionships, targetId }) {
+      return fetchers.user.getRelationships({ originId, targetId })
         .then((types) => {
           for(let relationship in relationships) {
             const value = relationships[relationship];
@@ -167,9 +176,8 @@ module.exports = {
         })
     },
 
-    nameNotBlockingId(originName, targetId) {
-      return fetchers.user
-        .getRelationshipFromNameToId({ originName, targetId, relationship: 'blocking' })
+    targetNotBlockingOrigin({ originId, targetId }) {
+      return fetchers.user .getRelationship({ originId, targetId, relationship: 'blocking' })
         .then((result) => promiseFromValidation({
           test: result,
           error: 'user target blocking origin'
@@ -179,7 +187,7 @@ module.exports = {
 
 
   twat: {
-    contentMeetsPolicy(content) {
+    contentMeetsPolicy({ content }) {
       const policy = policies.twatContent;
 
       return promiseFromValidations([
@@ -193,7 +201,7 @@ module.exports = {
       ])
     },
 
-    idExists(id) {
+    idExists({ id }) {
       return fetchers.twat.idExists({ id })
         .then((result) => promiseFromValidation({
           test: result,
@@ -201,18 +209,19 @@ module.exports = {
         }));
     },
 
-    parentIdExistsOrUndefined(parentId) {
+    idExistsOrUndefined({ id }) {
 
-      if(parentId === undefined)
+      if(id === undefined) {
         return promiseFromValidation({test: true});
+      }
 
-      return fetchers.twat.idExists({ id: parentId })
+      return fetchers.twat.idExists({ id })
         .then((result) => promiseFromValidation({
           test: result,
-          error: 'twat parent not exists'
+          error: 'twat id not exists and not undefined'
         }))
     },
-    offsetMeetsPolicy(offset) {
+    offsetMeetsPolicy({ offset }) {
       const policy = policies.twatOffset;
 
       return promiseFromValidation({
@@ -220,7 +229,7 @@ module.exports = {
           error: 'twat offset not number'
       })
     },
-    countMeetsPolicy(count) {
+    countMeetsPolicy({ count }) {
       const policy = policies.twatCount;
 
       return promiseFromValidations([
@@ -236,10 +245,16 @@ module.exports = {
   },
 
   session: {
-    isAuthenticated(authenticated) {
+    isAuthenticated({ authenticated }) {
       return promiseFromValidation({
         test: authenticated,
         error: 'session user not authenticated'
+      })
+    },
+    debounceUserCreate({ lastCreate }) {
+      return promiseFromValidation({
+        test: lastCreate === undefined || Date.now() - lastCreate > policies.session.userCreate,
+        error: 'session user created below debounce'
       })
     }
   },

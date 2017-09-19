@@ -19,5 +19,8 @@ module.exports = {
   session: {
     cookieSecret: String,
     cookieSecure: Boolean
-  }
+  },
+
+  encodeId: Function, // database id → public id
+  decodeId: Function, // public id → database id
 }

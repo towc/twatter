@@ -1,5 +1,6 @@
 const knex = require('./db');
 const log = require('./log');
+const MC = require('maptor-consumer');
 
 const exists = (table, where) => {
   return knex(table)
@@ -10,6 +11,9 @@ const exists = (table, where) => {
 
 const fetchers = {
   user: {
+    idExists({ id }) {
+      return exists('users', { id });
+    },
     getIdFromName({ name }) {
       return knex('users')
         .select('id')
@@ -25,40 +29,56 @@ const fetchers = {
         .where({ name })
         .then(([{ hash }]) => hash)
     },
-    getBasicById({ id }) {
+    getBasic({ id }) {
       return knex('users')
         .select([
           'profile_url',
           'name'
         ])
         .where({ id })
-        .then(( [data] ) => data)
+        .then(( [data] ) => MC.map(data, {
+          profileUrl: 'profile_url',
+          name: 1
+        }))
     },
-    getPublicByName({ name }) {
+    getPublic({ id }) {
       return knex('users')
         .select([
           'profile_url',
           'description',
           'follower_count',
-          'following_count'
+          'following_count',
+          'name'
         ])
-        .where({ name })
-        .then(([ data ]) => data)
+        .where({ id })
+        .then(([ data ]) => MC.map(data, {
+          profileUrl: 'profile_url',
+          description: 1,
+          followerCount: 'follower_count',
+          followingCount: 'following_count',
+          name: 1
+        }));
     },
-    getRelationshipsFromIdToName({ originId, targetName }) {
-      return fetchers.user.getIdFromName({ name: targetName })
-        .then((targetId) => knex('user_relationsips')
-            .select('type')
-            .where({ origin_id: originId, target_id: targetId })
-        )
+    getRelationships({ originId, targetId }) {
+      return knex('user_relationsips')
+          .select('type')
+          .where({ origin_id: originId, target_id: targetId })
+          .then((data) => {
+            const res = {};
+            
+            for(let { type } of data) {
+              res[type] = true;
+            };
+
+            return res;
+          })
     },
-    getRelationshipFromNameToId({ originName, targetId, relationship }) {
-      return fetchers.user.getIdFromName({ name: originName })
-        .then((originId) => exists('user_relationships', {
+    getRelationship({ originName, targetId, relationship }) {
+      return exists('user_relationships', {
           origin_id: originId,
           taget_id: targetId,
           type: relationship
-        }))
+        })
     }
 
   },
@@ -66,7 +86,7 @@ const fetchers = {
     idExists({ id }) {
       return exists('twats', { id });
     },
-    getPublicById({ id }) {
+    getPublic({ id }) {
       return knex('twats')
         .select([
           'content',
@@ -78,44 +98,68 @@ const fetchers = {
         ])
         .where({ id })
         .then(([ data ]) => new Promise((resolve) => {
-          fetchers.user.getBasicById({ id: data.author_id })
+          fetchers.user.getBasic({ id: data.author_id })
             .then((author) => { 
-              delete data.author_id;
               resolve({ ...data, author });
             })
         }))
+        .then((data) => MC.map(data, {
+          content: 1,
+          twatbackCount: 'twatback_count',
+          shoutCount: 'shout_count',
+          responseCount: 'response_count',
+          parentId: 'parent_id',
+          authorId: 'author_id',
+          author: {
+            profileUrl: 1,
+            name: 1
+          }
+        }))
     },
-    getTimelineById({ id, offset, count }) {
+    getTimeline({ id, offset, count }) {
       return knex('twats')
         .join('user_relationships', {
           'target_id': 'twats.author_id',
           'type': knex.raw("'following'")
         })
         .select([
+          'id',
           'content',
           'twatback_count',
           'shout_count',
           'response_count',
           'parent_id'
         ])
+        .then((data) => MC.map(data, [{
+          id: 1,
+          content: 1,
+          twatbackCount: 'twatback_count',
+          shoutCount: 'shout_count',
+          responseCount: 'response_count',
+        }]))
     },
-    getPublicByAuthorName({ name, offset, count }) {
+    getPublicByAuthor({ id, offset, count }) {
       return knex('twats')
-        .join('users', {
-          'twats.author_id': 'users.id',
-        })
         .select([
-          'twats.id',
+          'id',
           'content',
           'twatback_count',
-          'twats.shout_count',
+          'shout_count',
           'response_count',
           'parent_id'
         ])
-        .where({ 'users.name': name })
-        .orderBy('twats.created_at')
+        .where({ 'parent_id': id })
+        .orderBy('created_at')
         .limit(count)
-        .offset(offset);
+        .offset(offset)
+        .then((data) => MC.map(data, [{
+          id: 1,
+          content: 1,
+          twatbackCount: 'twatback_count',
+          shoutCount: 'shout_count',
+          responseCount: 'response_count',
+          parentId: 'parent_id'
+        }]))
     }
   }
 }

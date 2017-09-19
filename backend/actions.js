@@ -32,38 +32,38 @@ module.exports = {
       return query.update(updateObject);
     },
 
-    changeIdRelationshipsName({ relationships, originId, targetName })  {
-      return fetchers.user.getIdFromName({ name: targetName })
-        .then((targetId) => {
-          const promises = [];
-          for(let relationship in relationships) {
-            const value = relationships[relationship];
-            const relationshipObject = {
-              origin_id: originId,
-              target_id: targetId,
-              type: relationship
-            };
+    changeRelationships({ relationships, originId, targetId })  {
+      const promises = [];
 
-            promises.push(value ?
-              knex('user_relationships')
-                .insert(relationshipObject) :
-              knex('user_relationships')
-                .where(relationshipObject)
-                .delete()
-            );
+      for(let relationship in relationships) {
+        const value = relationships[relationship];
+        const relationshipObject = {
+          origin_id: originId,
+          target_id: targetId,
+          type: relationship
+        };
 
-            if(relationship === 'following') {
-              promises.push(
-                knex('users')
-                  .where({ id: originId })
-                  .increment('following_count', value ? 1 : -1 ),
-                knex('users')
-                  .where({ id: targetId })
-                  .increment('follower_count', value ? 1 : -1 )
-              )
-            }
-          }
-        })
+        promises.push(value ?
+          knex('user_relationships')
+            .insert(relationshipObject) :
+          knex('user_relationships')
+            .where(relationshipObject)
+            .delete()
+        );
+
+        if(relationship === 'following') {
+          promises.push(
+            knex('users')
+              .where({ id: originId })
+              .increment('following_count', value ? 1 : -1 ),
+            knex('users')
+              .where({ id: targetId })
+              .increment('follower_count', value ? 1 : -1 )
+          )
+        }
+      }
+
+      return Promise.all(promises);
     }
   },
 

@@ -27,14 +27,15 @@ const apiPaths = {
   'post /user': handlers.user.create,
   'post /user/login': handlers.user.login,
   'post /user/edit': handlers.user.edit,
-  'post /user/relationship/:name': handlers.user.changeRelationship,
-  'get /user/by-name/base/:name': handlers.user.getByNameBase,
+  'post /user/relationship/:id': handlers.user.changeRelationship,
+  'get /user/base/:id': handlers.user.getBase,
 
   'post /twat': handlers.twat.create,
-  'get /twat/by-id/:id': handlers.twat.getById,
-  'get /twat/timeline/:offset\\+:count': handlers.twat.getTimeline,
-  'get /twat/timeline/by-name/:name/:offset\\+:count': handlers.twat.getTimelineByName
+  'get /twat/:id': handlers.twat.getBase,
+  'get /twat/timeline/:offset+:count': handlers.twat.getTimeline,
+  'get /twat/by-author/:id/:offset+:count': handlers.twat.getPublicByAuthor
 }
+
 for(let key in apiPaths) {
   const [method, path] = key.split(' ');
   expressApi[method](path, apiPaths[key]);

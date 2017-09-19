@@ -29,5 +29,9 @@ module.exports = {
   twatCount: {
     max: 30,
     charset: ['numeric decimal']
+  },
+
+  debounce: {
+    userCreate: 10000
   }
 }
