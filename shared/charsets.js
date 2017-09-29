@@ -16,7 +16,11 @@ const charsets = {
 
   'numeric decimal': {
     set: '0123456789',
-    message: 'decimal digits (0-9)' }
+    message: 'decimal digits (0-9)' },
+
+  'numeric hex': {
+    set: '0123456789abcdefABCDEF',
+    message: 'hex digits (0-9, A-F, a-f)'}
 }
 
 charsets['base uppercase'].set = charsets['base lowercase'].set.toUpperCase();

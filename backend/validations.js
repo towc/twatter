@@ -1,8 +1,8 @@
 const fetchers = require('./fetchers');
 const bcrypt = require('bcrypt');
 
-const policies = require('./policies');
-const charsets = require('./charsets');
+const policies = require('./../shared/policies');
+const charsets = require('./../shared/charsets');
 
 const promiseFromValidation = 
   ({test, error}) => test ?
@@ -62,7 +62,7 @@ module.exports = {
 
   user: {
     nameMeetsPolicy({ name }) {
-      const policy = policies.name;
+      const policy = policies.user.name;
 
       return promiseFromValidations([
         {
@@ -85,7 +85,7 @@ module.exports = {
           error: 'user name not exists'
         }));
     },
-    nameNotExists(name) {
+    nameNotExists({ name }) {
       return new Promise((resolve, reject) => {
         this.nameExists({ name })
           .then(() => { reject('user name exists') })
@@ -102,7 +102,7 @@ module.exports = {
     },
 
     passwordMeetsPolicy({ password }) {
-      const policy = policies.password;
+      const policy = policies.user.password;
 
       return promiseFromValidations([
         {
@@ -120,17 +120,15 @@ module.exports = {
 
     passwordMatchesName({ password, name }) {
       return fetchers.user.hashFromName({ name })
-        .then((hash) =>
-          bcrypt.compare(password, hash)
-            .then((result) => promiseFromValidation({
-              test: result,
-              error: 'user password not matching'
-            }))  
-        )
+        .then((hash) => bcrypt.compare(password, hash))
+        .then((result) => promiseFromValidation({
+          test: result,
+          error: 'user password not matching'
+        }))  
     },
 
     profileUrlMeetsPolicy({ profileUrl }) {
-      const policy = policies.profileUrl;
+      const policy = policies.user.profileUrl;
 
       return promiseFromValidations([
         {
@@ -147,7 +145,7 @@ module.exports = {
     },
 
     descriptionMeetsPolicy({ description }) {
-      const policy = policies.description;
+      const policy = policies.user.description;
 
       return promiseFromValidations([
         {
@@ -177,10 +175,14 @@ module.exports = {
     },
 
     targetNotBlockingOrigin({ originId, targetId }) {
-      return fetchers.user .getRelationship({ originId, targetId, relationship: 'blocking' })
+      if(originId === -1 || targetId === -1) {
+        return promiseFromValidation({ test: true });
+      }
+
+      return fetchers.user.getRelationship({ originId, targetId, relationship: 'blocking' })
         .then((result) => promiseFromValidation({
           test: result,
-          error: 'user target blocking origin'
+          error: 'user relationship target blocking origin'
         }))
     }
   },
@@ -188,7 +190,7 @@ module.exports = {
 
   twat: {
     contentMeetsPolicy({ content }) {
-      const policy = policies.twatContent;
+      const policy = policies.twat.content;
 
       return promiseFromValidations([
         {
@@ -222,15 +224,20 @@ module.exports = {
         }))
     },
     offsetMeetsPolicy({ offset }) {
-      const policy = policies.twatOffset;
+      const policy = policies.twat.offset;
 
-      return promiseFromValidation({
+      return promiseFromValidations([
+        {
           test: stringWithinCharsets(offset, policy.charset),
-          error: 'twat offset not number'
-      })
+          error: 'twat offset not hex number'
+        }, {
+          test: offset.length < policy.maxLength,
+          error: 'twat offset above max'
+        }
+      ])
     },
     countMeetsPolicy({ count }) {
-      const policy = policies.twatCount;
+      const policy = policies.twat.count;
 
       return promiseFromValidations([
         {

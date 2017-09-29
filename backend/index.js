@@ -19,10 +19,6 @@ expressApp.use(expressSession({
 }));
 expressApp.use(expressBodyParser.json());
 
-expressApi.get('/', (req, res) => {
-  res.send(Math.random() + ' hello')
-});
-
 const apiPaths = {
   'post /user': handlers.user.create,
   'post /user/login': handlers.user.login,

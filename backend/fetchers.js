@@ -73,7 +73,7 @@ const fetchers = {
             return res;
           })
     },
-    getRelationship({ originName, targetId, relationship }) {
+    getRelationship({ originId, targetId, relationship }) {
       return exists('user_relationships', {
           origin_id: originId,
           taget_id: targetId,
@@ -130,6 +130,8 @@ const fetchers = {
           'response_count',
           'parent_id'
         ])
+        .limit(count)
+        .offset(offset)
         .then((data) => MC.map(data, [{
           id: 1,
           content: 1,
@@ -148,7 +150,7 @@ const fetchers = {
           'response_count',
           'parent_id'
         ])
-        .where({ 'parent_id': id })
+        .where({ 'author_id': id })
         .orderBy('created_at')
         .limit(count)
         .offset(offset)

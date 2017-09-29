@@ -2,13 +2,15 @@ const { encodeId, decodeId } = require('./../.env');
 const validations = require('./validations');
 const actions = require('./actions');
 const fetchers = require('./fetchers');
+const responseSchemas = require('./../shared/response-schemas')(encodeId);
 const log = require('./log');
 const MC = require('maptor-consumer');
 
 const decodeIds = (obj, idNames) => 
   idNames.reduce((res, idName) => {
       if(res[idName] !== undefined) {
-        res[idName] = decodeId(res[idName])
+        const decoded = decodeId(res[idName]);
+        res[idName] = decoded < 0 ? undefined : decoded;
       }
 
       return res;
@@ -51,7 +53,6 @@ const handleSuccess = (res, data) => {
  *    const { basicInfo } = decodeIds(req.params, ['propertyNameWithId']);
  *    const { advancedInfo } = decodeIds(req.body, ['thingWithId']);
  *    const { sessionInfo } = req.session;
- *
  *    validateAll([
  *      validations.subject.someValidation({ someInfo }),
  *      // this will run in parallel with all the ones in this array
@@ -137,7 +138,7 @@ module.exports = {
             .then((id) => {
               req.session.userId = id;
               req.session.authenticated = true;
-              handleSuccess(res);
+              handleSuccess(res, MC.map({ id }, responseSchemas.user.loginData));
             })
             .catch((error) => { handleInternal(res, error) });
         })
@@ -225,15 +226,7 @@ module.exports = {
       ])
         .then(() => {
           fetchers.user.getPublic({ id })
-            .then((data) => { handleSuccess(res, MC.map(data, 
-              {
-                profileUrl: String,
-                description: String,
-                followerCount: Number,
-                followingCount: Number,
-                name: String
-              })) 
-            })
+            .then((data) => { handleSuccess(res, MC.map(data, responseSchemas.user.base)) })
             .catch((error) => { handleInternal(res, error) });
         })
         .catch((error) => { handleError(res, error) });
@@ -268,24 +261,7 @@ module.exports = {
       ])
         .then(() => {
           fetchers.twat.getPublic({ id })
-            .then((data) => { handleSuccess(res, MC.map(data, 
-              {
-                id: encodeId,
-                content: String,
-                twatbackCount: Number,
-                shoutCount: Number,
-                responseCount: Number,
-                parentId: encodeId,
-                author: {
-                  id: encodeId,
-                  profileUrl: String,
-                  description: String,
-                  followerCount: Number,
-                  followingCount: Number,
-                  name: String
-                }
-              }))
-            })
+            .then((data) => { handleSuccess(res, MC.map(data, responseSchemas.twat.base)) })
             .catch((error) => { handleInternal(res, error) });
         })
         .catch((error) => { handleError(res, error) });
@@ -302,24 +278,7 @@ module.exports = {
       ])
         .then(() => {
           fetchers.twat.getTimeline({ id: userId, offset, count }) 
-            .then((data) => { handleSuccess(res, MC.map(data, 
-              [{
-                id: encodeId,
-                content: String,
-                twatbackCount: Number,
-                shoutCount: Number,
-                responseCount: Number,
-                parentId: encodeId,
-                author: {
-                  id: encodeId,
-                  profileUrl: String,
-                  description: String,
-                  followerCount: Number,
-                  followingCount: Number,
-                  name: String
-                }
-              }]))
-            })
+            .then((data) => { handleSuccess(res, MC.map(data, responseSchemas.twat.timeline)) })
             .catch((error) => { handleInternal(res, error) });
         })
         .catch((error) => { handleError(res, error) });
@@ -327,32 +286,19 @@ module.exports = {
 
     getPublicByAuthor(req, res) {
       const { id, offset, count } = decodeIds(req.params, ['id']);
+      const { userId } = req.session;
 
       validateAll([
-        validations.user.nameExists({ name }),
+        validations.user.idExists({ id })
+      ], () => [
+        validations.user.targetNotBlockingOrigin({ targetId: id, originId: userId || -1 }) 
+      ], () => [
         validations.twat.offsetMeetsPolicy({ offset }),
         validations.twat.countMeetsPolicy({ count })
       ])
         .then(() => {
           fetchers.twat.getPublicByAuthor({ id, offset, count })
-            .then((data) => { handleSuccess(res, MC.map(data,
-              [{
-                id: encodeId,
-                content: String,
-                twatbackCount: Number,
-                shoutCount: Number,
-                responseCount: Number,
-                parentId: encodeId,
-                author: {
-                  id: encodeId,
-                  profileUrl: String,
-                  description: String,
-                  followerCount: Number,
-                  followingCount: Number,
-                  name: String
-                }
-              }]))
-            })
+            .then((data) => { handleSuccess(res, MC.map(data, responseSchemas.twat.publicByAuthor)) })
             .catch((error) => { handleInternal(res, error) });
         })
         .catch((error) => { handleError(res, error) });
