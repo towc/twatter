@@ -2,7 +2,8 @@ const { encodeId, decodeId } = require('./../.env');
 const validations = require('./validations');
 const actions = require('./actions');
 const fetchers = require('./fetchers');
-const responseSchemas = require('./../shared/response-schemas')(encodeId);
+const responseSchemas = require('./../shared/response-schemas')({ id: encodeId });
+const requestSchemas = require('./../shared/request-schemas')({ id: decodeId, error: (_, propertyName) => { throw `required parameter not set -- ${propertyName}` } });
 const log = require('./log');
 const MC = require('maptor-consumer');
 
@@ -15,6 +16,8 @@ const decodeIds = (obj, idNames) =>
 
       return res;
   }, obj);
+const consumeRequest = (request, schema) => MC.map(request, schema);
+const consumeResponse = (response, schema) => MC.map(response, schema);
 
 // each promiseCreator is either an array or a function returning an array.
 // the next argument will not be evaluated unless all previous arguments have resolved
@@ -31,15 +34,15 @@ const validateAll = (...promiseCreators) => {
 
   return promise;
 };
-const handleError = (res, error) => {
-  res.json({ error });
+const handleError = (res, { error, status }) => {
+  res.status(status).json({ error });
 }
 const handleInternal = (res, error) => {
-  res.json({ error: 'internal error' });
+  res.status(500).json({ error: 'internal error' });
   log(error, { type: 'error' });
 }
 const handleSuccess = (res, data) => {
-  res.json({ success: true, data });
+  res.status(200).json({ success: true, data });
 }
 
 /**
@@ -50,8 +53,8 @@ const handleSuccess = (res, data) => {
  * subject: {
  *  ...
  *  handler(req, res) {
- *    const { basicInfo } = decodeIds(req.params, ['propertyNameWithId']);
- *    const { advancedInfo } = decodeIds(req.body, ['thingWithId']);
+ *    const { basicInfo } = consumeRequest(req.params, requestSchemas.subject.schema);
+ *    const { advancedInfo } = consumeRequest(req.body, requestSchemas.subject.otherSchema);
  *    const { sessionInfo } = req.session;
  *    validateAll([
  *      validations.subject.someValidation({ someInfo }),
@@ -63,7 +66,7 @@ const handleSuccess = (res, data) => {
  *    ], () => [
  *      // and so on
  *    ])
-*        // this will run if all validations succeeded
+ *      // this will run if all validations succeeded
  *      .then(() => {
  *        // you either have an action or a fetch
  *        // actions have side effects and shouldn't return anything
@@ -77,13 +80,7 @@ const handleSuccess = (res, data) => {
  *        // fetchers are pure and need to return data
  *        fetchers.subject.fetch({ moreInfo })
  *          // this will run if the fetch has gone through
- *          .then((data) => { handleSuccess(res, MC.map(data,
- *            // this allows you to easily see what the API will return
- *            {
- *              someString: String,
- *              someId: encodeId
- *              ...
- *            }))
+ *          .then((data) => { handleSuccess(res, consumeResponse(data, responseSchemas.subject.schema))
  *          })
  *          // this will run if there was a querying error
  *          // ideally it should NEVER run
@@ -104,7 +101,7 @@ module.exports = {
   
   user: {
     create(req, res) {
-      const { name, password } = req.body;
+      const { name, password } = consumeRequest(req.body, requestSchemas.user.authIdentifier);
       const { lastCreate } = req.session;
       
       validateAll([
@@ -126,7 +123,7 @@ module.exports = {
     },
 
     login(req, res) {
-      const { name, password } = req.body;
+      const { name, password } = consumeRequest(req.body, requestSchemas.user.authIdentifier);
 
       validateAll([
         validations.user.nameExists({ name })
@@ -138,7 +135,7 @@ module.exports = {
             .then((id) => {
               req.session.userId = id;
               req.session.authenticated = true;
-              handleSuccess(res, MC.map({ id }, responseSchemas.user.loginData));
+              handleSuccess(res, consumeResponse({ id }, responseSchemas.user.loginData));
             })
             .catch((error) => { handleInternal(res, error) });
         })
@@ -146,7 +143,7 @@ module.exports = {
     },
 
     edit(req, res) {
-      const { name, password, profileUrl, description } = req.body;
+      const { name, password, profileUrl, description } = consumeRequest(req.body, requestSchemas.user.edit);
       const { userId, authenticated } = req.session;
 
       validateAll([
@@ -187,7 +184,7 @@ module.exports = {
     },
 
     changeRelationship(req, res) {
-      const { targetId } = decodeIds(req.params, ['targetId']);
+      const { targetId } = consumeRequest(req.params, requestSchemas.user.changeRelationship);
       const { following, blocking, muting } = req.body;
       const { userId, authenticated } = req.session;
 
@@ -219,14 +216,14 @@ module.exports = {
     },
 
     getBase(req, res) {
-      const { id } = decodeIds(req.params, ['id']);
+      const { id } = consumeRequest(req.params, requestSchemas.user.identifier);
 
       validateAll([
         validations.user.idExists({ id })
       ])
         .then(() => {
           fetchers.user.getPublic({ id })
-            .then((data) => { handleSuccess(res, MC.map(data, responseSchemas.user.base)) })
+            .then((data) => { handleSuccess(res, consumeResponse(data, responseSchemas.user.base)) })
             .catch((error) => { handleInternal(res, error) });
         })
         .catch((error) => { handleError(res, error) });
@@ -236,7 +233,7 @@ module.exports = {
 
   twat: {
     create(req, res) {
-      const { content, parentId } = decodeIds(req.body, ['parentId']);
+      const { content, parentId } = consumeRequest(req.body, requestSchemas.twat.create);
       const { userId, authenticated } = req.session;
 
       validateAll([
@@ -254,21 +251,21 @@ module.exports = {
     },
 
     getBase(req, res) {
-      const { id } = decodeIds(req.params, ['id']);
+      const { id } = consumeRequest(req.params, requestSchemas.twat.identifier);
 
       validateAll([
         validations.twat.idExists({ id })
       ])
         .then(() => {
           fetchers.twat.getPublic({ id })
-            .then((data) => { handleSuccess(res, MC.map(data, responseSchemas.twat.base)) })
+            .then((data) => { handleSuccess(res, consumeResponse(data, responseSchemas.twat.base)) })
             .catch((error) => { handleInternal(res, error) });
         })
         .catch((error) => { handleError(res, error) });
     },
 
     getTimeline(req, res) {
-      const { offset, count } = req.params;
+      const { offset, count } = consumeRequest(req.params, responseSchemas.twat.list);
       const { authenticated, userId } = req.session;
 
       validateAll([
@@ -278,14 +275,14 @@ module.exports = {
       ])
         .then(() => {
           fetchers.twat.getTimeline({ id: userId, offset, count }) 
-            .then((data) => { handleSuccess(res, MC.map(data, responseSchemas.twat.timeline)) })
+            .then((data) => { handleSuccess(res, consumeResponse(data, responseSchemas.twat.timeline)) })
             .catch((error) => { handleInternal(res, error) });
         })
         .catch((error) => { handleError(res, error) });
     },
 
     getPublicByAuthor(req, res) {
-      const { id, offset, count } = decodeIds(req.params, ['id']);
+      const { id, offset, count } = consumeRequest(req.params, requestSchemas.twat.listByAuthor);
       const { userId } = req.session;
 
       validateAll([
@@ -298,7 +295,7 @@ module.exports = {
       ])
         .then(() => {
           fetchers.twat.getPublicByAuthor({ id, offset, count })
-            .then((data) => { handleSuccess(res, MC.map(data, responseSchemas.twat.publicByAuthor)) })
+            .then((data) => { handleSuccess(res, consumeResponse(data, responseSchemas.twat.publicByAuthor)) })
             .catch((error) => { handleInternal(res, error) });
         })
         .catch((error) => { handleError(res, error) });

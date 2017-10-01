@@ -34,7 +34,12 @@ const apiPaths = {
 
 for(let key in apiPaths) {
   const [method, path] = key.split(' ');
-  expressApi[method](path, apiPaths[key]);
+  expressApi[method](path, (req, res) => {
+    new Promise(() => { apiPaths[key](req, res) })
+      .catch((error) => {
+        res.status(400).json({ error })
+      })
+  });
 }
 
 expressApp.use('/api', expressApi);

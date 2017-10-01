@@ -5,9 +5,9 @@ const policies = require('./../shared/policies');
 const charsets = require('./../shared/charsets');
 
 const promiseFromValidation = 
-  ({test, error}) => test ?
+  ({test, error, status=422}) => test ?
     Promise.resolve() :
-    Promise.reject(error);
+    Promise.reject({ error, status });
 
 const promiseFromValidations = validationObjects => {
   for(let {test, error} of validationObjects) {
@@ -255,7 +255,8 @@ module.exports = {
     isAuthenticated({ authenticated }) {
       return promiseFromValidation({
         test: authenticated,
-        error: 'session user not authenticated'
+        error: 'session user not authenticated',
+        status: 401
       })
     },
     debounceUserCreate({ lastCreate }) {

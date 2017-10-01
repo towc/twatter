@@ -1,4 +1,4 @@
-module.exports = (id) => ({
+module.exports = ({ id }) => ({
   user: {
     loginData: {
       id
